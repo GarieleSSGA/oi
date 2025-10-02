@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grupo 5 - Diseño de Obras Hidráulicas</title>
+    <title>Calculadora Hidráulica Mágica</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -15,6 +16,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #000;
             color: #e0e6ed;
+            overflow-x: hidden;
         }
 
         .slide-container {
@@ -56,7 +58,6 @@
             overflow: hidden;
         }
 
-        /* Partículas animadas de fondo */
         .slide-1::before {
             content: '';
             position: absolute;
@@ -78,7 +79,6 @@
             50% { background-position: 100% 100%; }
         }
 
-        /* Líneas decorativas animadas */
         .slide-1::after {
             content: '';
             position: absolute;
@@ -344,7 +344,6 @@
             position: relative;
         }
 
-        /* NAVEGACIÓN MEJORADA */
         .navigation {
             position: fixed;
             bottom: 50px;
@@ -442,7 +441,6 @@
             overflow: auto;
         }
 
-        /* Partículas de agua animadas para fondo */
         .slide-2::before {
             content: '';
             position: absolute;
@@ -465,7 +463,6 @@
             50% { background-position: 100% 100%; transform: translateY(-20px); }
         }
 
-        /* Ondas sutiles */
         .slide-2::after {
             content: '';
             position: absolute;
@@ -536,15 +533,9 @@
 
         .calc-container {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 30px;
             margin-top: 20px;
-        }
-
-        @media (max-width: 900px) {
-            .calc-container {
-                grid-template-columns: 1fr;
-            }
         }
 
         .calc-panel {
@@ -554,6 +545,7 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
             border: 1px solid rgba(0, 212, 255, 0.5);
             animation: panelFloat 3s ease-in-out infinite alternate;
+            width: 100%;
         }
 
         .calc-panel:nth-child(1) { animation-delay: 0.2s; }
@@ -602,7 +594,6 @@
         .calc-th {
             background: linear-gradient(135deg, rgba(0, 150, 255, 0.4) 0%, rgba(0, 100, 200, 0.3) 100%);
             font-weight: 700;
-            color: #ffffff;
         }
 
         .calc-tr:hover {
@@ -899,7 +890,7 @@
                 <h1 class="calc-h1">🚀 ¡Canal Mágico de Agua! Máxima Eficiencia Hidráulica ✨</h1>
 
                 <div class="calc-container">
-                    <!-- Panel izquierdo: Tabla e inputs -->
+                    <!-- Panel 1: Calculadora Original -->
                     <div class="calc-panel">
                         <h2 class="calc-h2">1. ¡Elige el talud del canal! 📐</h2>
                         <p class="calc-table-desc">Toca una fila para seleccionar el ángulo del lado del canal. ¡Como elegir el disfraz del río!</p>
@@ -928,17 +919,43 @@
                         <input type="number" class="calc-input" id="S" value="0.001" step="0.0001" min="0.0001">
 
                         <button class="calc-button" onclick="calculate()">🔮 ¡Calcular la Magia del Canal!</button>
-                    </div>
 
-                    <!-- Panel derecho: Resultados y gráfico -->
-                    <div class="calc-panel">
-                        <h2 class="calc-h2">3. ¡Resultados Mágicos! ✨</h2>
+                        <h2 class="calc-h2" style="margin-top: 30px;">3. ¡Resultados Mágicos! ✨</h2>
                         <div id="results" class="calc-results">
                             <div id="resultValues" class="calc-result-values"></div>
                             <h3>🧩 Procedimiento Paso a Paso (¡Fácil como jugar!)</h3>
                             <div id="procedure" class="calc-procedure"></div>
                             <h3>🎨 Dibujo del Canal Mágico</h3>
                             <svg id="channel-svg" class="calc-channel-svg"></svg>
+                        </div>
+                    </div>
+
+                    <!-- Panel 2: Calculadora de Eficiencia Hidráulica (debajo) -->
+                    <div class="calc-panel">
+                        <h2 class="calc-h2">4. ¡Calcula la Máxima Eficiencia Hidráulica! ⚡</h2>
+                        <p class="calc-table-desc">Ingresa A, R y b para calcular la eficiencia hidráulica con la fórmula mágica. ¡Aprovecha todo el espacio!</p>
+                        <div class="calc-equation">
+                            η = <span class="calc-fraction">
+                                <span class="num">A · R<sup>2/3</sup></span>
+                                <span class="line"></span>
+                                <span class="den">b<sup>8/3</sup></span>
+                            </span>
+                        </div>
+                        <label class="calc-label" for="A">Área A (m²) 💧</label>
+                        <input type="number" class="calc-input" id="A" value="10" step="0.1" min="0.01">
+
+                        <label class="calc-label" for="R">Radio Hidráulico R (m) 📏</label>
+                        <input type="number" class="calc-input" id="R" value="1" step="0.01" min="0.01">
+
+                        <label class="calc-label" for="b">Ancho Inferior b (m) 🏞️</label>
+                        <input type="number" class="calc-input" id="b" value="5" step="0.1" min="0.01">
+
+                        <button class="calc-button" onclick="calculateEfficiency()">🌟 ¡Calcular Eficiencia!</button>
+
+                        <div id="efficiencyResults" class="calc-results">
+                            <div id="efficiencyResultValues" class="calc-result-values"></div>
+                            <h3>🧠 Explicación del Cálculo</h3>
+                            <div id="efficiencyProcedure" class="calc-procedure"></div>
                         </div>
                     </div>
                 </div>
@@ -1004,7 +1021,6 @@
             showSlide(currentSlide - 1);
         }
 
-        // Navegación con teclado
         document.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowRight' || e.key === ' ') {
                 e.preventDefault();
@@ -1016,12 +1032,10 @@
             }
         });
 
-        // Inicializar
         document.addEventListener('DOMContentLoaded', () => {
             showSlide(1);
         });
 
-        // Script de la calculadora
         let selectedRow = 0;
 
         function initCalculator() {
@@ -1199,6 +1213,68 @@
                     resultsDiv.style.display = 'block';
 
                     drawChannel(b, y, slope.z);
+                }
+            };
+
+            window.calculateEfficiency = function() {
+                const A = parseFloat(document.getElementById('A').value);
+                const R = parseFloat(document.getElementById('R').value);
+                const b = parseFloat(document.getElementById('b').value);
+
+                if (!A || !R || !b || A <= 0 || R <= 0 || b <= 0) {
+                    alert("¡Ups! Ingresa números válidos para A, R y b. 🌊");
+                    return;
+                }
+
+                const efficiency = (A * Math.pow(R, 2/3)) / Math.pow(b, 8/3);
+                const resultsDiv = document.getElementById('efficiencyResults');
+                const valuesDiv = document.getElementById('efficiencyResultValues');
+
+                function formatNumber(x, decimals = 4) {
+                    return x.toFixed(decimals).replace(/\.?0+$/, '');
+                }
+
+                function createFraction(numer, denom) {
+                    return `
+                        <div class="calc-fraction">
+                            <span class="num">${numer}</span>
+                            <span class="line"></span>
+                            <span class="den">${denom}</span>
+                        </div>
+                    `;
+                }
+
+                if (resultsDiv && valuesDiv) {
+                    valuesDiv.innerHTML = `
+                        <p><strong>⚡ Eficiencia Hidráulica η:</strong> ${formatNumber(efficiency)}</p>
+                        <p><strong>💧 Área A:</strong> ${formatNumber(A)} m²</p>
+                        <p><strong>📏 Radio Hidráulico R:</strong> ${formatNumber(R)} m</p>
+                        <p><strong>🏞️ Ancho Inferior b:</strong> ${formatNumber(b)} m</p>
+                    `;
+
+                    let proc = `
+                        <div class="calc-step">
+                            <div class="calc-step-icon">🧮</div>
+                            <div class="calc-step-title">Paso 1: ¡Aplicamos la fórmula de eficiencia! 🌟</div>
+                            <div class="calc-step-content">
+                                <div class="calc-equation">
+                                    η = ${createFraction(`A · R<sup>2/3</sup>`, `b<sup>8/3</sup>`)}
+                                </div>
+                                <p>Sustituimos los valores:</p>
+                                <div class="calc-equation">
+                                    η = ${createFraction(`${formatNumber(A)} · ${formatNumber(R)}<sup>2/3</sup>`, `${formatNumber(b)}<sup>8/3</sup>`)}
+                                </div>
+                                <p>Calculamos:</p>
+                                <p>R<sup>2/3</sup> = ${formatNumber(Math.pow(R, 2/3))}</p>
+                                <p>b<sup>8/3</sup> = ${formatNumber(Math.pow(b, 8/3))}</p>
+                                <p>η = ${formatNumber(A)} × ${formatNumber(Math.pow(R, 2/3))} ÷ ${formatNumber(Math.pow(b, 8/3))} = <span class="calc-highlight">${formatNumber(efficiency)}</span></p>
+                                <div class="calc-emoji-explain">✨ ¡La eficiencia hidráulica máxima está lista! Esto mide qué tan bien fluye el agua en tu canal.</div>
+                            </div>
+                        </div>
+                    `;
+
+                    document.getElementById('efficiencyProcedure').innerHTML = proc;
+                    resultsDiv.style.display = 'block';
                 }
             };
 
