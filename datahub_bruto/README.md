@@ -76,3 +76,38 @@ Instalar: `pip install -r requirements.txt`
 - Limpiar `PROJ_LIB`/`GDAL_DATA` antes de usar rasterio (se hace en el código).
 - `Remove-Item Env:CURL_CA_BUNDLE` al inicio de cada sesión.
 - Si Docker/DataHub no corre, el pipeline funciona igual con fallback local.
+## 🧠 IA que no alucina: catálogo de operaciones GIS en DataHub + MCP
+
+El agente (opencode/Ollama/API) puede **descubrir y usar operaciones GIS con
+precisión** en vez de improvisar:
+
+- **`geo/catalogo_operaciones.py`** — inventario de **93 operaciones** (lectura,
+  estadística, máscaras/cortes, índices, álgebra, transformaciones, morfología,
+  interpolación, vectorial, series, calidad, visualización, zonal, clima) con su
+  descripción, entradas, salidas y ejemplo.
+- **`datahub_write/registrar_catalogo_ops.py`** — registra las 93 operaciones en
+  DataHub (plataforma `geoBrutoOps`) como datasets descubribles. Backend dual:
+  si GMS está arriba → DataHub real; si no → `data/manifest_operaciones.json`.
+- **`agent/mcp_bruto.py`** — servidor MCP que expone a la IA las herramientas:
+  `listar_operaciones`, `buscar_operaciones`, `detalle_operacion`,
+  `linaje_producto`, `listar_memoria_datahub`.
+
+```bash
+# registrar el catálogo en DataHub
+python datahub_write/registrar_catalogo_ops.py
+
+# arrancar el MCP (stdio) para que la IA lo consuma
+python agent/mcp_bruto.py --transport stdio
+
+# o en HTTP
+DATAHUB_GMS_HOST=localhost DATAHUB_GMS_PORT=8080 \
+  python agent/mcp_bruto.py --transport http
+```
+
+## ☁️ DataHub en Codespaces (sin gastar RAM local)
+
+- Levanta el stack completo con Docker dentro del Codespace:
+  `bash deploy/codespaces/levantar_datahub.sh` (GMS en :8080).
+- Con GMS arriba, `generar_catalogo.py` y el registrador escriben en el DataHub
+  real (`gms_ok: true`).
+- Si Docker/GMS no corre → fallback local automatico (la demo nunca se rompe).
