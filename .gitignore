@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Entornos
+.venv/
+venv/
+
+# Entorno Windows
+.env
+CURL_CA_BUNDLE
+
+# Guardar config por defecto, pero nunca tokens reales
+# (config.yaml aquí tiene tokens vacíos; si le pones reales, gitignorealo)
+# config.yaml
+
+# Artefactos pesados opcionales
+*.DS_Store

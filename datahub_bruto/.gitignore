@@ -1,0 +1,21 @@
+# secretos y configuración real
+config/config.yaml
+.env
+
+# entornos virtuales
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# datos generados (no commitear rasters/manifests grandes)
+data/sinteticos/
+data/productos/
+data/*.json
+
+# logs
+*.log
+
+# basura
+*.tif
+.DS_Store

@@ -1,0 +1,1 @@
+"""Módulo agente: orquestador que responde por zona usando los productos."""

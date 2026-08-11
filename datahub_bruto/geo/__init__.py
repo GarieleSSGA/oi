@@ -1,0 +1,1 @@
+"""Módulo geo: rasters sintéticos, análisis y operaciones espaciales."""

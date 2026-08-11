@@ -1,0 +1,1 @@
+"""Paquete datahub_bruto: análisis geoespacial con memoria en DataHub."""

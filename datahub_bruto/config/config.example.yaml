@@ -1,0 +1,53 @@
+# Configuración central de datahub_bruto
+# Override por variables de entorno (precedencia sobre estos valores)
+
+datahub:
+  gms_url: "http://localhost:8080"
+  frontend_url: "http://localhost:9002"
+  token: ""                    # vacío = sin auth (env: DATAHUB_GMS_TOKEN)
+  plataforma: "geoBruto"       # plataforma de los datasets
+  activado: true               # env: DATAHUB_ACTIVADO (false -> solo local)
+
+geo:
+  crs: "EPSG:4326"
+  resolucion_m: 500           # escala por defecto de los rasters
+  seed: 42                    # semilla para rasters sintéticos reproducible
+
+zonas:
+  activas: true
+  # 5 zonas ficticias definidas en zonas/zonas.py
+
+alertas:
+  umbral_ndvi: 0.3
+  umbral_ndwi: 0.2
+  umbral_humedad: 30
+  umbral_lluvia_mm: 50
+
+interpolacion:
+  metodo: "idw"               # idw | bilinear | nearest
+  puntos_max: 200
+
+buffer:
+  radios_km: [1, 2, 5]
+
+llm:
+  api_base: "https://api.deepseek.com/v1"   # env: LLM_API_BASE
+  api_key: ""                               # env: LLM_API_KEY (nunca en git)
+  model: "deepseek-chat"                    # env: LLM_API_MODEL
+  timeout_s: 60
+  activado: false
+
+ollama:
+  model: "gemma3:1b"
+  base_url: "http://localhost:11434"
+  timeout_s: 90
+  activado: false
+
+opencode:
+  comando: "opencode"
+  activado: false
+  timeout_s: 90
+
+dashboard:
+  host: "0.0.0.0"
+  puerto: 8501
