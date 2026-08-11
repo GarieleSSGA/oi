@@ -6,16 +6,17 @@ la plataforma `geoBrutoOps`, con sus propiedades (categoría, descripción,
 entradas, salidas, ejemplo). Así la IA (local o API) consulta DataHub para saber
 qué operaciones existen y cómo usarlas → ejecución precisa con casi 0 errores.
 
-Backend dual (igual que el resto del proyecto):
-- Si GMS responde → registra en DataHub vía REST /aspects.
+Usa el mismo mecanismo robusto que catalogar.py: `DatahubRestEmitter.emit_mce`
+(snapshot MCE). Backend dual:
+- Si GMS responde → registra en DataHub.
 - Si no → guarda data/manifest_operaciones.json (fallback). Nunca se rompe.
 """
 from __future__ import annotations
 
 import json
-import os
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Asegurar que la carpeta que contiene el paquete 'datahub_bruto' esté en path
@@ -23,137 +24,73 @@ _RUTA_ENV = Path(__file__).resolve().parents[2]
 if str(_RUTA_ENV) not in sys.path:
     sys.path.insert(0, str(_RUTA_ENV))
 
-import requests  # noqa: E402
+from datahub.emitter.mce_builder import make_dataset_urn  # noqa: E402
 
 from datahub_bruto.config import cargar_config  # noqa: E402
 from datahub_bruto.geo.catalogo_operaciones import CATALOGO  # noqa: E402
 
 _PLATAFORMA = "geoBrutoOps"
-_ENV = "PROD"
+_ACTOR = "urn:li:corpuser:datahub-bruto"
 
 
-def _urn_op(nombre: str) -> str:
-    return (f"urn:li:dataset:(urn:li:dataPlatform:{_PLATAFORMA},"
-            f"{nombre},{_ENV})")
+def _timestamp() -> int:
+    return int(datetime.now(timezone.utc).timestamp() * 1000)
 
 
-def _gms_disponible(gms_url: str, token: str) -> bool:
-    headers = {"Authorization": f"Bearer {token}"} if token else {}
-    try:
-        r = requests.get(f"{gms_url}/health", headers=headers, timeout=5)
-        return r.status_code == 200
-    except Exception:  # noqa: BLE001
-        return False
+def _mce_operacion(op: dict, platform: str):
+    """Construye el MCE (snapshot) para una operación; devuelve (urn, mce)."""
+    from datahub.metadata.schema_classes import (
+        DatasetPropertiesClass, DatasetSnapshotClass,
+        MetadataChangeEventClass)
 
-
-def _post_aspect(gms_url: str, token: str, urn: str,
-                 aspect: dict) -> bool:
-    """Ingesta un aspect vía /entities?action=ingest (MCP soportado por GMS)."""
-    headers = {
-        "Content-Type": "application/json",
-        "X-RestLi-Method": "ACTION",
-    }
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    aspect_name = next(iter(aspect))
-    aspect_value = next(iter(aspect.values()))
-    mcp = {
-        "entityType": "dataset",
-        "entityUrn": urn,
-        "aspectName": aspect_name,
-        "aspect": {
-            "value": json.dumps(aspect_value),
-            "contentType": "application/json",
+    urn = make_dataset_urn(platform, op["id"], "PROD")
+    props = DatasetPropertiesClass(
+        name=op["id"],
+        qualifiedName=urn,
+        description=f"[{op['cat']}] {op['nom']} — {op['desc']}",
+        customProperties={
+            "categoria": op["cat"],
+            "nombre": op["nom"],
+            "descripcion": op["desc"],
+            "entradas": op["inp"],
+            "salidas": op["out"],
+            "ejemplo": op["ej"],
+            "proyecto": "datahub_bruto",
+            "tipo": "OPERACION_GIS",
         },
-        "changeType": "UPSERT",
-    }
-    try:
-        r = requests.post(
-            f"{gms_url}/entities?action=ingest",
-            json=mcp, headers=headers, timeout=30,
-        )
-        return 200 <= r.status_code < 300
-    except Exception:  # noqa: BLE001
-        return False
+    )
+    snapshot = DatasetSnapshotClass(urn=urn, aspects=[props])
+    return urn, MetadataChangeEventClass(proposedSnapshot=snapshot)
 
 
-def operacion_a_dataset(op: dict) -> tuple[str, dict, dict]:
-    """Convierte una op en (urn, datasetProperties, schemaMetadata)."""
-    urn = _urn_op(op["id"])
-    props = {
-        "datasetProperties": {
-            "name": op["id"],
-            "description": f"[{op['cat']}] {op['nom']} — {op['desc']}",
-            "customProperties": {
-                "categoria": op["cat"],
-                "nombre": op["nom"],
-                "descripcion": op["desc"],
-                "entradas": op["inp"],
-                "salidas": op["out"],
-                "ejemplo": op["ej"],
-                "proyecto": "datahub_bruto",
-                "tipo": "OPERACION_GIS",
-            },
-        }
-    }
-    schema = {
-        "schemaMetadata": {
-            "schemaName": op["id"],
-            "platform": f"urn:li:dataPlatform:{_PLATAFORMA}-system",
-            "version": 0,
-            "created": {"time": int(time.time() * 1000),
-                        "actor": "urn:li:corpuser:datahub"},
-            "lastModified": {"time": int(time.time() * 1000),
-                             "actor": "urn:li:corpuser:datahub"},
-            "hash": "",
-            "platformSchema": {
-                "com.linkedin.schema.JsonSchema": {
-                    "document": json.dumps({
-                        "nombre": op["nom"],
-                        "entradas": op["inp"].split(", "),
-                        "salidas": op["out"].split(", "),
-                        "ejemplo": op["ej"],
-                    })
-                }
-            },
-            "fields": [
-                {
-                    "fieldPath": "entradas",
-                    "type": "STRING",
-                    "nativeDataType": "string",
-                    "description": op["inp"],
-                    "nullable": False,
-                },
-                {
-                    "fieldPath": "salidas",
-                    "type": "STRING",
-                    "nativeDataType": "string",
-                    "description": op["out"],
-                    "nullable": True,
-                },
-            ],
-        }
-    }
-    return urn, props, schema
-
-
-def registrar(guardar_manifest: bool = True):
+def registrar(guardar_manifest: bool = True) -> list:
     cfg = cargar_config()
     dh = cfg.get("datahub", {})
     gms_url = dh.get("gms_url", "http://localhost:8080").rstrip("/")
     token = dh.get("token", "")
     activado = dh.get("activado", True)
 
+    emitter = None
+    if activado:
+        try:
+            from datahub.emitter.rest_emitter import DatahubRestEmitter
+            emitter = DatahubRestEmitter(gms_server=gms_url, token=token)
+            emitter.test_connection()  # lanza excepción si no hay GMS
+        except Exception:  # noqa: BLE001
+            emitter = None
+
     manifest = []
     ok_total = 0
     for op in CATALOGO:
-        urn, props, schema = operacion_a_dataset(op)
+        urn, mce = _mce_operacion(op, _PLATAFORMA)
         ok = False
-        if activado:
-            ok = _post_aspect(gms_url, token, urn, props)
-            if ok:
-                _post_aspect(gms_url, token, urn, schema)
+        if emitter is not None:
+            try:
+                emitter.emit_mce(mce)
+                ok = True
                 ok_total += 1
+            except Exception:  # noqa: BLE001
+                ok = False
         manifest.append({
             "urn": urn, "id": op["id"], "cat": op["cat"],
             "nombre": op["nom"], "gms_ok": ok,
@@ -176,7 +113,6 @@ def registrar(guardar_manifest: bool = True):
 
 if __name__ == "__main__":
     lista = registrar()
-    # resumen por categoría
     from collections import Counter
     c = Counter(x["cat"] for x in lista)
     for k, v in sorted(c.items()):
