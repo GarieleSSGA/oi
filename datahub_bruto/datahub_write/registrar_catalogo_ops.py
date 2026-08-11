@@ -48,17 +48,31 @@ def _gms_disponible(gms_url: str, token: str) -> bool:
 
 def _post_aspect(gms_url: str, token: str, urn: str,
                  aspect: dict) -> bool:
-    headers = {"Content-Type": "application/json"}
+    """Ingesta un aspect vía /entities?action=ingest (MCP soportado por GMS)."""
+    headers = {
+        "Content-Type": "application/json",
+        "X-RestLi-Method": "ACTION",
+    }
     if token:
         headers["Authorization"] = f"Bearer {token}"
+    aspect_name = next(iter(aspect))
+    aspect_value = next(iter(aspect.values()))
+    mcp = {
+        "entityType": "dataset",
+        "entityUrn": urn,
+        "aspectName": aspect_name,
+        "aspect": {
+            "value": json.dumps(aspect_value),
+            "contentType": "application/json",
+        },
+        "changeType": "UPSERT",
+    }
     try:
         r = requests.post(
-            f"{gms_url}/aspects",
-            params={"urn": urn, "aspect": next(iter(aspect))},
-            json=next(iter(aspect.values())),
-            headers=headers, timeout=30,
+            f"{gms_url}/entities?action=ingest",
+            json=mcp, headers=headers, timeout=30,
         )
-        return r.status_code in (200, 201)
+        return 200 <= r.status_code < 300
     except Exception:  # noqa: BLE001
         return False
 
